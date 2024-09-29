@@ -5,7 +5,7 @@
 
       <!-- Month and Year Display -->
       <div class="calendar-header">
-        <h2 class="month-year">{{ currentMonthYear }}</h2>
+        <h2 class="month-year">{{ currentDate.toLocaleString('default', { month: 'long', year: "numeric" }) }}</h2>
       </div>
 
       <!-- Days of the week header -->
@@ -60,53 +60,31 @@
           Next Month
         </Button>
       </div>
-
-      <!-- Dialog for adding/editing tasks -->
-      <Dialog header="Add/Edit Task" :visible="taskDialog" @hide="closeTaskDialog">
-        <div class="p-fluid">
-          <div class="p-field">
-            <label for="taskName">Task Name</label>
-            <InputText id="taskName" v-model="currentTask.name" />
-          </div>
-        </div>
-        <template #footer>
-          <Button
-            label="Cancel"
-            icon="pi pi-times"
-            class="p-button-text"
-            @click="closeTaskDialog"
-          />
-          <Button
-            label="Save"
-            icon="pi pi-check"
-            class="p-button-text"
-            @click="saveTask"
-          />
-        </template>
-      </Dialog>
+      <NewTask
+      :visible="taskDialog"
+      :tasks="selectedDay?.tasks || []"
+      :day="selectedDay"
+      @update:visible="taskDialog = $event"
+      @save="handleSaveTask"
+      @delete="handleDeleteTask"
+    />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
-import Dialog from 'primevue/dialog';
-import InputText from 'primevue/inputtext';
+import { ref, reactive } from 'vue';
 import Button from 'primevue/button';
+import NewTask from '@/components/NewTask.vue';
 
 // State Variables
 const currentDate = ref(new Date());
 const days = ref([]);
 const taskDialog = ref(false);
-const currentTask = reactive({ name: '', day: null, editing: false });
+const selectedDay = ref(null); // Track the selected day
 
 // Days of the week for the header
 const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-// Display the current month and year
-const currentMonthYear = computed(() => {
-  return currentDate.value.toLocaleString('default', { month: 'long', year: 'numeric' });
-});
 
 // Utility function to get the first day of the month
 const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
@@ -120,14 +98,19 @@ const populateDays = () => {
   const lastDay = getLastDayOfMonth(currentDate.value);
   const daysArray = [];
 
-  // Fill in days from the previous month
-  for (let i = firstDay.getDay(); i > 0; i--) {
-    const prevMonthDay = new Date(firstDay);
-    prevMonthDay.setDate(firstDay.getDate() - i);
+  // Calculate the number of days from the previous month to show at the start
+  const prevMonthLastDay = new Date(firstDay);
+  prevMonthLastDay.setDate(0); // Sets to the last day of the previous month
+  const prevDaysCount = firstDay.getDay(); // Number of days to show from the previous month
+
+  // Add days from the previous month
+  for (let i = prevDaysCount - 1; i >= 0; i--) {
+    const prevMonthDay = new Date(prevMonthLastDay);
+    prevMonthDay.setDate(prevMonthLastDay.getDate() - i);
     daysArray.push({ date: prevMonthDay, tasks: [], notCurrentMonth: true });
   }
 
-  // Fill in days for the current month
+  // Add days of the current month
   for (let day = 1; day <= lastDay.getDate(); day++) {
     daysArray.push({
       date: new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), day),
@@ -136,15 +119,39 @@ const populateDays = () => {
     });
   }
 
-  // Fill in days for the next month to complete the last week
-  const nextMonthDaysToAdd = (7 - (daysArray.length % 7)) % 7;
-  for (let i = 1; i <= nextMonthDaysToAdd; i++) {
-    const nextMonthDay = new Date(lastDay);
-    nextMonthDay.setDate(lastDay.getDate() + i);
-    daysArray.push({ date: nextMonthDay, tasks: [], notCurrentMonth: true });
+  // Calculate the number of days from the next month to fill the last week
+  const nextDaysCount = 7 - (daysArray.length % 7); // Days needed to complete the last row
+  if (nextDaysCount < 7) {
+    for (let i = 1; i <= nextDaysCount; i++) {
+      const nextMonthDay = new Date(lastDay);
+      nextMonthDay.setDate(lastDay.getDate() + i);
+      daysArray.push({ date: nextMonthDay, tasks: [], notCurrentMonth: true });
+    }
   }
 
   days.value = daysArray;
+};
+
+// Open dialog to add or edit a task
+const openAddTaskDialog = (day) => {
+  selectedDay.value = day;
+  taskDialog.value = true;
+};
+
+// Handle saving a task
+const handleSaveTask = (task, index = null) => {
+  if (index !== null) {
+    // Update existing task
+    selectedDay.value.tasks[index] = task;
+  } else {
+    // Add new task
+    selectedDay.value.tasks.push(task);
+  }
+};
+
+// Handle deleting a task
+const handleDeleteTask = (index) => {
+  selectedDay.value.tasks.splice(index, 1);
 };
 
 // Navigate to the previous month
@@ -159,51 +166,14 @@ const nextMonth = () => {
   populateDays();
 };
 
-// Open dialog to add a task
-const openAddTaskDialog = (day) => {
-  currentTask.name = '';
-  currentTask.day = day;
-  currentTask.editing = false;
-  taskDialog.value = true;
-};
-
-// Edit existing task
-const editTask = (task, day) => {
-  currentTask.name = task.name;
-  currentTask.day = day;
-  currentTask.editing = true;
-  taskDialog.value = true;
-};
-
-// Save task to the current day
-const saveTask = () => {
-  if (currentTask.editing) {
-    const existingTask = currentTask.day.tasks.find((t) => t.name === currentTask.name);
-    if (existingTask) {
-      existingTask.name = currentTask.name;
-    }
-  } else {
-    currentTask.day.tasks.push({ name: currentTask.name });
-  }
-  taskDialog.value = false;
-};
-
-// Delete task
-const deleteTask = (task, day) => {
-  day.tasks = day.tasks.filter((t) => t !== task);
-};
-
-// Close task dialog
-const closeTaskDialog = () => {
-  taskDialog.value = false;
-};
-
-// Initialize calendar with current month
+// Initialize calendar with the current month
 populateDays();
 </script>
-
 <style scoped>
 /* Parent container to center the calendar */
+h1, h2, div{
+    color: white;
+}
 .calendar-container {
   display: flex;
   justify-content: center; /* Center the calendar horizontally */
