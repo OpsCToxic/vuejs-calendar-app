@@ -1,43 +1,37 @@
-<script setup>
-import { ref } from 'vue'
+<script setup lang="ts">
+import { computed, ref } from 'vue'
 import Button from 'primevue/button'
 
-// State Variables
+// UI State
 const currentDate = ref(new Date())
-const days = ref([])
 const taskDialog = ref(false)
-const selectedDay = ref(null) // Track the selected day
+const selectedDay = ref(null)
 
 // Days of the week for the header
 const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
-// Utility function to get the first day of the month
-const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1)
-
-// Utility function to get the last day of the month
-const getLastDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0)
-
 // Populate the days array with days of the current month and adjacent days
-const populateDays = () => {
-  const firstDay = getFirstDayOfMonth(currentDate.value)
-  const lastDay = getLastDayOfMonth(currentDate.value)
-  const daysArray = []
+const days = computed(() => {
+  const date = currentDate.value
+  const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1)
+  const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+  const array = []
 
   // Calculate the number of days from the previous month to show at the start
-  const prevMonthLastDay = new Date(firstDay)
+  const prevMonthLastDay = new Date(firstDayOfMonth)
   prevMonthLastDay.setDate(0) // Sets to the last day of the previous month
-  const prevDaysCount = firstDay.getDay() // Number of days to show from the previous month
+  const prevDaysCount = firstDayOfMonth.getDay() // Number of days to show from the previous month
 
   // Add days from the previous month
   for (let i = prevDaysCount - 1; i >= 0; i--) {
     const prevMonthDay = new Date(prevMonthLastDay)
     prevMonthDay.setDate(prevMonthLastDay.getDate() - i)
-    daysArray.push({ date: prevMonthDay, tasks: [], notCurrentMonth: true })
+    array.push({ date: prevMonthDay, tasks: [], notCurrentMonth: true })
   }
 
   // Add days of the current month
-  for (let day = 1; day <= lastDay.getDate(); day++) {
-    daysArray.push({
+  for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
+    array.push({
       date: new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), day),
       tasks: [],
       notCurrentMonth: false
@@ -45,54 +39,36 @@ const populateDays = () => {
   }
 
   // Calculate the number of days from the next month to fill the last week
-  const nextDaysCount = 7 - (daysArray.length % 7) // Days needed to complete the last row
+  const nextDaysCount = 7 - (array.length % 7) // Days needed to complete the last row
   if (nextDaysCount < 7) {
     for (let i = 1; i <= nextDaysCount; i++) {
-      const nextMonthDay = new Date(lastDay)
-      nextMonthDay.setDate(lastDay.getDate() + i)
-      daysArray.push({ date: nextMonthDay, tasks: [], notCurrentMonth: true })
+      const nextMonthDay = new Date(lastDayOfMonth)
+      nextMonthDay.setDate(lastDayOfMonth.getDate() + i)
+      array.push({ date: nextMonthDay, tasks: [], notCurrentMonth: true })
     }
   }
 
-  days.value = daysArray
-}
+  return array
+})
 
 // Open dialog to add or edit a task
 const openAddTaskDialog = (day) => {
   selectedDay.value = day
   taskDialog.value = true
-}
-
-// Handle saving a task
-const handleSaveTask = (task, index = null) => {
-  if (index !== null) {
-    // Update existing task
-    selectedDay.value.tasks[index] = task
-  } else {
-    // Add new task
-    selectedDay.value.tasks.push(task)
-  }
-}
-
-// Handle deleting a task
-const handleDeleteTask = (index) => {
-  selectedDay.value.tasks.splice(index, 1)
+  console.log('henlo')
 }
 
 // Navigate to the previous month
 const prevMonth = () => {
   currentDate.value.setMonth(currentDate.value.getMonth() - 1)
-  populateDays()
 }
 
 // Navigate to the next month
 const nextMonth = () => {
   currentDate.value.setMonth(currentDate.value.getMonth() + 1)
-  populateDays()
 }
 
 // Initialize calendar with the current month
-populateDays()
 </script>
 
 <template>
@@ -127,16 +103,6 @@ populateDays()
           <ul class="task-list">
             <li v-for="(task, i) in day.tasks" :key="i" class="task-item">
               {{ task.name }}
-              <Button
-                icon="pi pi-pencil"
-                class="p-button-rounded p-button-text"
-                @click.stop="editTask(task, day)"
-              />
-              <Button
-                icon="pi pi-trash"
-                class="p-button-rounded p-button-danger p-button-text"
-                @click.stop="deleteTask(task, day)"
-              />
             </li>
           </ul>
         </div>
@@ -144,9 +110,12 @@ populateDays()
 
       <!-- Bottom Navigation Buttons -->
       <div class="calendar-navigation">
-        <Button icon="pi pi-chevron-left" class="p-button-text" @click="prevMonth">
-          Previous Month
-        </Button>
+        <Button
+          label="Previous Month"
+          icon="pi pi-chevron-left"
+          class="p-button-text"
+          @click="prevMonth"
+        />
         <Button icon="pi pi-chevron-right" class="p-button-text" @click="nextMonth">
           Next Month
         </Button>
@@ -197,6 +166,7 @@ div {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 5px;
+  height: 625px;
 }
 
 .calendar-cell {
@@ -217,6 +187,7 @@ div {
 }
 
 .not-current-month {
+  background-color: darkgrey;
 }
 
 .date-label {
