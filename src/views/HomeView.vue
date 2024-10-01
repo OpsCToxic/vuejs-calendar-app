@@ -22,22 +22,18 @@
           :key="index"
           class="calendar-cell"
           :class="{ 'not-current-month': day.notCurrentMonth }"
-          @click="openAddTaskDialog(day)"
+          @click="selectDay(day)"
         >
           <div class="date-label">{{ day.date.getDate() }}</div>
+          <!-- Task list sorted by time -->
           <ul class="task-list">
-            <li v-for="(task, i) in day.tasks" :key="i" class="task-item">
+            <li
+              v-for="(task, i) in sortedTasks(day.tasks)"
+              :key="i"
+              class="task-item-box"
+            >
               {{ task.name }}
-              <Button
-                icon="pi pi-pencil"
-                class="p-button-rounded p-button-text"
-                @click.stop="editTask(task, day)"
-              />
-              <Button
-                icon="pi pi-trash"
-                class="p-button-rounded p-button-danger p-button-text"
-                @click.stop="deleteTask(task, day)"
-              />
+              <span class="task-time">{{ formatTime(task.time) }}</span>
             </li>
           </ul>
         </div>
@@ -60,55 +56,44 @@
           Next Month
         </Button>
       </div>
+    </div>
 
-    </div>
-	<Dialog v-model:visible="taskDialog" modal header="Edit Profile" :style="{ width: '25rem' }">
-    <span class="text-surface-500 dark:text-surface-400 block mb-8">Update your information.</span>
-    <div class="flex items-center gap-4 mb-4">
-        <label for="username" class="font-semibold w-24">Username</label>
-        <InputText id="username" class="flex-auto" autocomplete="off" />
-    </div>
-    <div class="flex items-center gap-4 mb-8">
-        <label for="email" class="font-semibold w-24">Email</label>
-        <InputText id="email" class="flex-auto" autocomplete="off" />
-    </div>
-    <div class="flex justify-end gap-2">
-        <Button type="button" label="Cancel" severity="secondary" @click="visible = false"></Button>
-        <Button type="button" label="Save" @click="visible = false"></Button>
-    </div>
-</Dialog>
+    <!-- Task Dropdown Dialog -->
+    <TaskDropdown
+      v-model:visible="taskDropdownVisible"
+      :tasks="selectedDay?.tasks"
+      :selectedDate="selectedDay?.date"
+      @createNewTask="openNewTaskDialog"
+    />
+
+    <!-- New Task Dialog -->
+    <NewTask v-model:visible="taskDialogVisible" :day="selectedDay" />
   </div>
-  
 </template>
 
 <script setup>
-import { ref, watch  } from 'vue';
+import { ref, watch } from 'vue';
 import { useTaskStore } from '../stores/taskStore';
 import Button from 'primevue/button';
-import Dialog from 'primevue/dialog';
+import TaskDropdown from '@/components/TaskDropdown.vue';
 import NewTask from '@/components/NewTask.vue';
 
+const taskStore = useTaskStore(); // Use Pinia store
 
-const taskStore = useTaskStore();
 // State Variables
 const currentDate = ref(new Date());
 const days = ref([]);
-const taskDialog = ref(false);
 const selectedDay = ref(null); // Track the selected day
+const taskDialogVisible = ref(false); // Control visibility of the NewTask dialog
+const taskDropdownVisible = ref(false); // Control visibility of the TaskDropdown dialog
 
 // Days of the week for the header
 const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// Utility function to get the first day of the month
-const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
-
-// Utility function to get the last day of the month
-const getLastDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
-
 // Populate the days array with days of the current month and adjacent days
 const populateDays = () => {
-  const firstDay = getFirstDayOfMonth(currentDate.value);
-  const lastDay = getLastDayOfMonth(currentDate.value);
+  const firstDay = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), 1);
+  const lastDay = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 0);
   const daysArray = [];
 
   // Calculate the number of days from the previous month to show at the start
@@ -122,7 +107,7 @@ const populateDays = () => {
     prevMonthDay.setDate(prevMonthLastDay.getDate() - i);
     daysArray.push({
       date: prevMonthDay,
-      tasks: taskStore.getTasksForDate(prevMonthDay),
+      tasks: taskStore.getTasksForDate(prevMonthDay), // Use Pinia store to get tasks for the day
       notCurrentMonth: true,
     });
   }
@@ -132,7 +117,7 @@ const populateDays = () => {
     const date = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), day);
     daysArray.push({
       date: date,
-      tasks: taskStore.getTasksForDate(date),
+      tasks: taskStore.getTasksForDate(date), // Use Pinia store to get tasks for the day
       notCurrentMonth: false,
     });
   }
@@ -145,39 +130,49 @@ const populateDays = () => {
       nextMonthDay.setDate(lastDay.getDate() + i);
       daysArray.push({
         date: nextMonthDay,
-        tasks: taskStore.getTasksForDate(nextMonthDay),
+        tasks: taskStore.getTasksForDate(nextMonthDay), // Use Pinia store to get tasks for the day
         notCurrentMonth: true,
       });
     }
   }
 
-  days.value = daysArray;
+  days.value = daysArray; // Update the days array
 };
 
+// Sort tasks by time (for each day)
+const sortedTasks = (tasks) => {
+  return tasks.sort((a, b) => {
+    const timeA = a.time ? new Date(a.time).getTime() : 0;
+    const timeB = b.time ? new Date(b.time).getTime() : 0;
+    return timeA - timeB;
+  });
+};
 
-// Open dialog to add or edit a task
-const openAddTaskDialog = (day) => {
-  console.log("Day clicked:");
-  console.log(day);
+// Format the time for display
+const formatTime = (time) => {
+  if (!time) return '';
+  const date = new Date(time);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+const selectDay = (day) => {
   selectedDay.value = day;
-  taskDialog.value = true;
-  console.log(taskDialog.value);
-};
+  taskDialogVisible.value = false;
+  taskDropdownVisible.value = false;
 
-// Handle saving a task
-const handleSaveTask = (task, index = null) => {
-  if (index !== null) {
-    // Update existing task
-    selectedDay.value.tasks[index] = task;
+  if (day.tasks.length === 0) {
+    // If no tasks, open the NewTask dialog
+    taskDialogVisible.value = true;
   } else {
-    // Add new task
-    selectedDay.value.tasks.push(task);
+    // If there are tasks, open the TaskDropdown dialog
+    taskDropdownVisible.value = true;
   }
 };
 
-// Handle deleting a task
-const handleDeleteTask = (index) => {
-  selectedDay.value.tasks.splice(index, 1);
+// Open the NewTask dialog from TaskDropdown
+const openNewTaskDialog = () => {
+  taskDropdownVisible.value = false; // Close TaskDropdown
+  taskDialogVisible.value = true; // Open NewTask dialog
 };
 
 // Navigate to the previous month
@@ -192,28 +187,27 @@ const nextMonth = () => {
   populateDays();
 };
 
+// Watch for changes in task data to repopulate the calendar
 watch(
-  () => taskStore.tasks,
+  () => taskStore.tasksByDate, // Watch for changes in the Pinia store
   () => {
     populateDays();
   },
   { deep: true }
 );
+
 // Initialize calendar with the current month
 populateDays();
 </script>
+
+
 <style scoped>
-/* Parent container to center the calendar */
-h1, h2, div{
-    color: white;
-}
 .calendar-container {
   display: flex;
   justify-content: center; /* Center the calendar horizontally */
   padding: 20px;
 }
 
-/* Task calendar styles */
 .task-calendar {
   width: 100em; /* Adjust the width percentage or set a fixed width */
   max-width: 1600px;
@@ -257,10 +251,11 @@ h1, h2, div{
 }
 
 .calendar-cell:hover {
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 .not-current-month {
+  opacity: 0.5;
 }
 
 .date-label {
@@ -276,11 +271,21 @@ h1, h2, div{
   margin: 0;
 }
 
-.task-item {
+.task-item-box {
+  background-color: #4bd496;
+  color: black;
+  padding: 5px;
+  border-radius: 4px;
+  margin-bottom: 5px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-top: 5px;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.task-time {
+  margin-left: 10px;
+  font-weight: bold;
 }
 
 .calendar-navigation {
@@ -291,6 +296,7 @@ h1, h2, div{
 
 .p-button-text {
   padding: 10px;
+  width: 10em;
   color: #fff;
   border-radius: 10px;
   background-color: #474747;

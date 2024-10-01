@@ -1,54 +1,44 @@
-// stores/taskStore.js
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
 
-export const useTaskStore = defineStore('taskStore', () => {
-  const tasks = ref({}) // Store tasks in an object with dates as keys
+export const useTaskStore = defineStore('taskStore', {
+  state: () => ({
+    tasksByDate: {} // Dictionary to store tasks by date
+  }),
 
-  // Load tasks from local storage on initialization
-  const loadTasksFromLocalStorage = () => {
-    const savedTasks = localStorage.getItem('tasks')
-    if (savedTasks) {
-      tasks.value = JSON.parse(savedTasks)
+  getters: {
+    // Get tasks for a specific date
+    getTasksForDate: (state) => (date) => {
+      const dateKey = date.toDateString() // Convert date to a string key
+      return state.tasksByDate[dateKey] || [] // Return tasks or an empty array if none exist
     }
-  }
+  },
 
-  // Save tasks to local storage
-  const saveTasksToLocalStorage = () => {
-    localStorage.setItem('tasks', JSON.stringify(tasks.value))
-  }
+  actions: {
+    // Add a new task for a specific date
+    addTask(date, task) {
+      const dateKey = date.toDateString()
+      if (!this.tasksByDate[dateKey]) {
+        this.tasksByDate[dateKey] = [] // Initialize an array if no tasks exist for the date
+      }
+      this.tasksByDate[dateKey].push(task) // Add the new task to the date's task list
+    },
 
-  // Function to get tasks for a specific date
-  const getTasksForDate = (date) => {
-    const dateKey = date.toDateString()
-    return tasks.value[dateKey] || []
-  }
+    // Update an existing task for a specific date
+    updateTask(date, oldTask, newTask) {
+      const dateKey = date.toDateString()
+      const tasks = this.tasksByDate[dateKey]
+      const taskIndex = tasks.indexOf(oldTask)
+      if (taskIndex !== -1) {
+        tasks[taskIndex] = newTask // Replace the old task with the new task
+      }
+    },
 
-  // Function to add a task
-  const addTask = (date, task) => {
-    const dateKey = date.toDateString()
-    if (!tasks.value[dateKey]) {
-      tasks.value[dateKey] = []
-    }
-    tasks.value[dateKey].push(task)
-  }
-
-  // Function to delete a task
-  const deleteTask = (date, taskIndex) => {
-    const dateKey = date.toDateString()
-    if (tasks.value[dateKey]) {
-      tasks.value[dateKey].splice(taskIndex, 1)
-      if (tasks.value[dateKey].length === 0) {
-        delete tasks.value[dateKey] // Remove the date key if no tasks are left
+    // Delete a task for a specific date
+    deleteTask(date, task) {
+      const dateKey = date.toDateString()
+      if (this.tasksByDate[dateKey]) {
+        this.tasksByDate[dateKey] = this.tasksByDate[dateKey].filter((t) => t !== task) // Remove the task from the list
       }
     }
   }
-
-  // Watch tasks and save to local storage whenever they change
-  watch(tasks, saveTasksToLocalStorage, { deep: true })
-
-  // Load tasks from local storage when the store is initialized
-  loadTasksFromLocalStorage()
-
-  return { tasks, getTasksForDate, addTask, deleteTask }
 })

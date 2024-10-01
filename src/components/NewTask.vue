@@ -1,28 +1,57 @@
 <template>
   <div>
-    <Dialog header="Task Details" :visible="isDialogVisible" modal @hide="closeDialog">
-      <div class="p-fluid">
+    <Dialog header="Task Details" v-model:visible="localVisible" modal @hide="closeDialog">
+      <div class="p-fluid form-layout">
         <div class="p-field">
           <label for="taskName">Task Name</label>
           <InputText
             id="taskName"
             v-model="taskName"
+            type="text"
             placeholder="Enter task name"
-            @keyup.enter="saveTask"
+            class="p-inputtext-lg"
           />
         </div>
+
         <div class="p-field">
-          <Button
-            label="Save Task"
-            icon="pi pi-check"
-            class="p-button-text"
-            @click="saveTask"
+          <label for="taskTime">Time</label>
+          <Calendar
+            id="taskTime"
+            v-model="taskTime"
+            timeOnly
+            hourFormat="12"
+            placeholder="Select time"
+            showIcon
+            class="p-inputtext-lg"
+          />
+        </div>
+
+        <div class="p-field">
+          <label for="taskDescription">Description</label>
+          <Textarea
+            id="taskDescription"
+            v-model="taskDescription"
+            rows="3"
+            autoResize
+            placeholder="Enter task description"
+            class="p-inputtext-lg"
           />
         </div>
       </div>
 
       <template #footer>
-        <Button label="Close" icon="pi pi-times" class="p-button-text" @click="closeDialog" />
+        <Button
+          label="Save Task"
+          icon="pi pi-check"
+          class="p-button-text p-button-lg"
+          @click="saveTask"
+        />
+        <Button
+          label="Close"
+          icon="pi pi-times"
+          class="p-button-text p-button-lg"
+          @click="closeDialog"
+        />
       </template>
     </Dialog>
   </div>
@@ -31,31 +60,33 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useTaskStore } from '../stores/taskStore';
-import InputText from 'primevue/inputtext';
-import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
-
-const taskStore = useTaskStore();
+import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
+import Calendar from 'primevue/calendar';
+import Textarea from 'primevue/textarea';
 
 const props = defineProps({
-  day: Object, // The day object with date and tasks
+  day: Object,
   visible: Boolean,
-  editingTask: Object, // The task to edit, if any
 });
 
-const emit = defineEmits(['update:visible']); // Emit for two-way binding
+const emit = defineEmits(['update:visible']);
+
+const taskStore = useTaskStore(); 
 
 const taskName = ref('');
-const isDialogVisible = ref(props.visible);
+const taskTime = ref(null);
+const taskDescription = ref('');
 
-// Watch for visibility changes
+const localVisible = ref(props.visible);
+
+// Watch for changes in the prop and update the local visibility
 watch(
   () => props.visible,
   (newValue) => {
-    isDialogVisible.value = newValue;
-    if (props.editingTask) {
-      taskName.value = props.editingTask.name; // Prepopulate the task name if editing
-    }
+    localVisible.value = newValue;
+    if (newValue) resetForm();
   }
 );
 
@@ -63,20 +94,56 @@ const closeDialog = () => {
   emit('update:visible', false);
 };
 
-// Save or update a task
+// Reset form fields
+const resetForm = () => {
+  taskName.value = '';
+  taskTime.value = null;
+  taskDescription.value = '';
+};
+
 const saveTask = () => {
   if (taskName.value.trim() === '') return;
 
-  const newTask = { name: taskName.value };
+  const newTask = {
+    name: taskName.value,
+    time: taskTime.value,
+    description: taskDescription.value,
+  };
 
-  if (props.editingTask) {
-    // Edit existing task
-    taskStore.updateTask(props.day.date, props.editingTask, newTask);
-  } else {
-    // Add new task
-    taskStore.addTask(props.day.date, newTask);
-  }
+  taskStore.addTask(props.day.date, newTask);
 
   closeDialog();
 };
 </script>
+
+<style scoped>
+.form-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.p-inputtext-lg {
+  width: 100%;
+}
+
+.p-button-lg {
+  padding: 0.75rem 1.25rem;
+}
+
+.p-dialog {
+  max-width: 500px;
+}
+
+.p-field label {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.p-field input,
+.p-field textarea,
+.p-field .p-calendar {
+  width: 100%;
+}
+</style>
