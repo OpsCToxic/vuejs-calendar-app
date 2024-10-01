@@ -60,23 +60,36 @@
           Next Month
         </Button>
       </div>
-      <NewTask
-      :visible="taskDialog"
-      :tasks="selectedDay?.tasks || []"
-      :day="selectedDay"
-      @update:visible="taskDialog = $event"
-      @save="handleSaveTask"
-      @delete="handleDeleteTask"
-    />
+
     </div>
+	<Dialog v-model:visible="taskDialog" modal header="Edit Profile" :style="{ width: '25rem' }">
+    <span class="text-surface-500 dark:text-surface-400 block mb-8">Update your information.</span>
+    <div class="flex items-center gap-4 mb-4">
+        <label for="username" class="font-semibold w-24">Username</label>
+        <InputText id="username" class="flex-auto" autocomplete="off" />
+    </div>
+    <div class="flex items-center gap-4 mb-8">
+        <label for="email" class="font-semibold w-24">Email</label>
+        <InputText id="email" class="flex-auto" autocomplete="off" />
+    </div>
+    <div class="flex justify-end gap-2">
+        <Button type="button" label="Cancel" severity="secondary" @click="visible = false"></Button>
+        <Button type="button" label="Save" @click="visible = false"></Button>
+    </div>
+</Dialog>
   </div>
+  
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, watch  } from 'vue';
+import { useTaskStore } from '../stores/taskStore';
 import Button from 'primevue/button';
+import Dialog from 'primevue/dialog';
 import NewTask from '@/components/NewTask.vue';
 
+
+const taskStore = useTaskStore();
 // State Variables
 const currentDate = ref(new Date());
 const days = ref([]);
@@ -100,42 +113,55 @@ const populateDays = () => {
 
   // Calculate the number of days from the previous month to show at the start
   const prevMonthLastDay = new Date(firstDay);
-  prevMonthLastDay.setDate(0); // Sets to the last day of the previous month
-  const prevDaysCount = firstDay.getDay(); // Number of days to show from the previous month
+  prevMonthLastDay.setDate(0); // Last day of the previous month
+  const prevDaysCount = firstDay.getDay(); // Days to show from the previous month
 
   // Add days from the previous month
   for (let i = prevDaysCount - 1; i >= 0; i--) {
     const prevMonthDay = new Date(prevMonthLastDay);
     prevMonthDay.setDate(prevMonthLastDay.getDate() - i);
-    daysArray.push({ date: prevMonthDay, tasks: [], notCurrentMonth: true });
+    daysArray.push({
+      date: prevMonthDay,
+      tasks: taskStore.getTasksForDate(prevMonthDay),
+      notCurrentMonth: true,
+    });
   }
 
   // Add days of the current month
   for (let day = 1; day <= lastDay.getDate(); day++) {
+    const date = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), day);
     daysArray.push({
-      date: new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), day),
-      tasks: [],
+      date: date,
+      tasks: taskStore.getTasksForDate(date),
       notCurrentMonth: false,
     });
   }
 
   // Calculate the number of days from the next month to fill the last week
-  const nextDaysCount = 7 - (daysArray.length % 7); // Days needed to complete the last row
+  const nextDaysCount = 7 - (daysArray.length % 7);
   if (nextDaysCount < 7) {
     for (let i = 1; i <= nextDaysCount; i++) {
       const nextMonthDay = new Date(lastDay);
       nextMonthDay.setDate(lastDay.getDate() + i);
-      daysArray.push({ date: nextMonthDay, tasks: [], notCurrentMonth: true });
+      daysArray.push({
+        date: nextMonthDay,
+        tasks: taskStore.getTasksForDate(nextMonthDay),
+        notCurrentMonth: true,
+      });
     }
   }
 
   days.value = daysArray;
 };
 
+
 // Open dialog to add or edit a task
 const openAddTaskDialog = (day) => {
+  console.log("Day clicked:");
+  console.log(day);
   selectedDay.value = day;
   taskDialog.value = true;
+  console.log(taskDialog.value);
 };
 
 // Handle saving a task
@@ -166,6 +192,13 @@ const nextMonth = () => {
   populateDays();
 };
 
+watch(
+  () => taskStore.tasks,
+  () => {
+    populateDays();
+  },
+  { deep: true }
+);
 // Initialize calendar with the current month
 populateDays();
 </script>
@@ -183,7 +216,7 @@ h1, h2, div{
 /* Task calendar styles */
 .task-calendar {
   width: 100em; /* Adjust the width percentage or set a fixed width */
-  max-width: 1600px; /* Set the maximum width for larger screens */
+  max-width: 1600px;
   padding: 20px;
   background-color: #323232;
   border-radius: 8px;
