@@ -1,6 +1,33 @@
 <template>
-    <div class="about">
-      <h1>This is the Overview Page!</h1>
+    
+    <!-- Month and Year Display -->
+    <div class="calendar-header">
+        <h2 class="month-year">{{ currentDate.toLocaleString('default', { month: 'long', year: "numeric" }) }}</h2>
+      </div>
+
+    <div>
+      <ul >
+        <li v-for="(day, index) in days" :key="day.date">{{ day.date.getDate() }}</li>
+      </ul>
+    </div>
+
+
+    <!-- Bottom Navigation Buttons -->
+    <div class="calendar-navigation">
+      <Button
+        icon="pi pi-chevron-left"
+        class="p-button-text"
+        @click="prevMonth"
+      >
+        Previous Month
+      </Button>
+      <Button
+        icon="pi pi-chevron-right"
+        class="p-button-text"
+        @click="nextMonth"
+      >
+        Next Month
+      </Button>
     </div>
   </template>
   
