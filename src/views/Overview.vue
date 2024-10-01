@@ -16,25 +16,6 @@
       </ul>
     </div> -->
 
-    <!-- attempt to list days with accordian drop down  -->
-    <!-- TODO: itter through tasks inside accordianContent -->
-    <!-- TODO: add the add/delete component inside -->
-    <div class="card">
-        <Accordion value="0">
-            <AccordionPanel v-for="(day, index) in days"
-             :key="String(day.date)" 
-             :value="String(index)">
-                <AccordionHeader>
-                  {{ weekDays[day.date.getDay()]}}
-                  {{ day.date.getDate() }} 
-                </AccordionHeader>
-                <AccordionContent>
-                    <p class="m-0">test</p>
-                </AccordionContent>
-            </AccordionPanel>
-        </Accordion>
-    </div>
-  
     <!-- Bottom Navigation Buttons -->
     <div class="calendar-navigation">
       <Button
@@ -52,6 +33,46 @@
         Next Month
       </Button>
     </div>
+
+    <!-- attempt to list days with accordian drop down  -->
+    <!-- TODO: itter through tasks inside accordianContent -->
+    <!-- TODO: add the add/delete component inside -->
+    <div class="card">
+        <Accordion value="0">
+            <AccordionPanel v-for="(day, index) in days"
+             :key="String(day.date)" 
+             :value="String(index)">
+                <AccordionHeader>
+                  {{ weekDays[day.date.getDay()]}}
+                  {{ day.date.getDate() }} 
+                </AccordionHeader>
+                <AccordionContent>
+                  <!-- put tasks v-for here, prob as a list -->
+                    <ul>
+                      
+                      <li v-for="task in day.tasks">
+                        {{ task.name }} {{ task.time }} {{ task.description }}
+                      </li>
+                  <!-- put editor dialog for this day -->
+
+                    </ul>
+
+                    <button
+                      @click="selectDay(day)"
+                      >test-button</button>
+                </AccordionContent>
+            </AccordionPanel>
+        </Accordion>
+    </div>
+  
+    <!-- drop down for editting button -->
+    <TaskDropdown
+      v-model:visible="taskDropdownVisible"
+      :tasks="selectedDay?.tasks"
+      :selectedDate="selectedDay?.date"
+      @createNewTask="openNewTaskDialog"
+    />
+
   </template>
   
   <script setup>
@@ -59,13 +80,13 @@
   import { useTaskStore } from '../stores/taskStore';
   import Button from 'primevue/button';
   import Dialog from 'primevue/dialog';
-  import NewTask from '@/components/NewTask.vue';
   
   import Accordion from 'primevue/accordion';
   import AccordionPanel from 'primevue/accordionpanel';
   import AccordionHeader from 'primevue/accordionheader';
   import AccordionContent from 'primevue/accordioncontent';
-  
+  import NewTask from '@/components/NewTask.vue';
+
   const taskStore = useTaskStore();
   // State Variables
   const currentDate = ref(new Date());
