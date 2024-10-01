@@ -17,6 +17,8 @@
     </div> -->
 
     <!-- attempt to list days with accordian drop down  -->
+    <!-- TODO: itter through tasks inside accordianContent -->
+    <!-- TODO: add the add/delete component inside -->
     <div class="card">
         <Accordion value="0">
             <AccordionPanel v-for="(day, index) in days"
@@ -179,6 +181,7 @@
   </script>
 
   <style>
+  /* TODO: restyle this page so that the things fit good */
   @media (min-width: 1024px) {
     .about {
       min-height: 100vh;
