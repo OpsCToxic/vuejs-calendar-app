@@ -3,15 +3,36 @@
     <!-- Month and Year Display -->
     <div class="calendar-header">
         <h2 class="month-year">{{ currentDate.toLocaleString('default', { month: 'long', year: "numeric" }) }}</h2>
-      </div>
-
-    <div>
-      <ul >
-        <li v-for="(day, index) in days" :key="day.date">{{ day.date.getDate() }}</li>
-      </ul>
     </div>
 
+    <!-- basic listing of days -->
+    <!-- <div>
+      <ul >
+        <li v-for="(day, index) in days" :key="day.date">
+          {{ weekDays[day.date.getDay()]}}
+          {{ day.date.getDate() }} 
+           
+        </li>
+      </ul>
+    </div> -->
 
+    <!-- attempt to list days with accordian drop down  -->
+    <div class="card">
+        <Accordion value="0">
+            <AccordionPanel v-for="(day, index) in days"
+             :key="String(day.date)" 
+             :value="String(index)">
+                <AccordionHeader>
+                  {{ weekDays[day.date.getDay()]}}
+                  {{ day.date.getDate() }} 
+                </AccordionHeader>
+                <AccordionContent>
+                    <p class="m-0">test</p>
+                </AccordionContent>
+            </AccordionPanel>
+        </Accordion>
+    </div>
+  
     <!-- Bottom Navigation Buttons -->
     <div class="calendar-navigation">
       <Button
@@ -38,6 +59,10 @@
   import Dialog from 'primevue/dialog';
   import NewTask from '@/components/NewTask.vue';
   
+  import Accordion from 'primevue/accordion';
+  import AccordionPanel from 'primevue/accordionpanel';
+  import AccordionHeader from 'primevue/accordionheader';
+  import AccordionContent from 'primevue/accordioncontent';
   
   const taskStore = useTaskStore();
   // State Variables
