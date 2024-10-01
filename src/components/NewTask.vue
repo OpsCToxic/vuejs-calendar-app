@@ -94,7 +94,6 @@ const closeDialog = () => {
   emit('update:visible', false);
 };
 
-// Reset form fields
 const resetForm = () => {
   taskName.value = '';
   taskTime.value = null;
