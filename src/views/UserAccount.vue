@@ -57,7 +57,9 @@ import axios from 'axios';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import router from '@/router';
+import { useTaskStore } from '../stores/taskStore';
 
+const taskStore = useTaskStore();
 const showSignUp = ref(false);
 
 const signUpUsername = ref('');
@@ -84,16 +86,24 @@ const signUp = async () => {
 
 const signIn = async () => {
   try {
-    const response = await axios.post("http://localhost:8080/users/signin", {
-    username: signInUsername.value,
-    password: signInPassword.value,
-}, {
-    withCredentials: true // Include credentials (cookies) with the request
-})
-	
-	console.log(response);
+    const response = await axios.post('http://localhost:8080/users/signin', {
+      username: signInUsername.value,
+      password: signInPassword.value,
+    }, {
+      withCredentials: true // Include credentials to keep session
+    });
+
+    console.log(response);
+
+    // Check if status is 200 for a successful login
     if (response.status === 200) {
-	  router.push('/home');
+      alert('Sign-in successful');
+
+      // Fetch user tasks and store them
+      await taskStore.fetchTasks();
+
+      // Navigate to the /home route
+      router.push('/home');
     } else {
       alert('Invalid credentials');
     }

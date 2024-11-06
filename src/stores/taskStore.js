@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import axios from 'axios'
 
 export const useTaskStore = defineStore('taskStore', {
   state: () => ({
@@ -14,6 +15,25 @@ export const useTaskStore = defineStore('taskStore', {
   },
 
   actions: {
+    async fetchTasks() {
+      try {
+        const response = await axios.get('http://localhost:8080/tasks/user-tasks', {
+          withCredentials: true
+        })
+
+        this.tasksByDate = {}
+
+        response.data.forEach((task) => {
+          const dateKey = new Date(task.date).toDateString()
+          if (!this.tasksByDate[dateKey]) {
+            this.tasksByDate[dateKey] = []
+          }
+          this.tasksByDate[dateKey].push(task)
+        })
+      } catch (error) {
+        console.error('Error fetching tasks:', error)
+      }
+    },
     // Add a new task for a specific date
     addTask(date, task) {
       const dateKey = date.toDateString()
