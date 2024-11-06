@@ -15,15 +15,7 @@
 
         <div class="p-field">
           <label for="taskTime">Time</label>
-          <Calendar
-            id="taskTime"
-            v-model="taskTime"
-            timeOnly
-            hourFormat="12"
-            placeholder="Select time"
-            showIcon
-            class="p-inputtext-lg"
-          />
+          <DatePicker v-model="taskTime" timeOnly hourFormat="12" placeholder="Select time" />
         </div>
 
         <div class="p-field">
@@ -63,8 +55,9 @@ import { useTaskStore } from '../stores/taskStore';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import Calendar from 'primevue/calendar';
+import DatePicker from 'primevue/datepicker';
 import Textarea from 'primevue/textarea';
+import axios from "axios";
 
 const props = defineProps({
   day: Object,
@@ -78,6 +71,7 @@ const taskStore = useTaskStore();
 const taskName = ref('');
 const taskTime = ref(null);
 const taskDescription = ref('');
+const selectedDate = ref(null); // Or set it to a default Date
 
 const localVisible = ref(props.visible);
 
@@ -90,6 +84,10 @@ watch(
   }
 );
 
+watch(taskTime, (newValue) => {
+  console.log("Selected Task Time:", newValue); // Check if taskTime updates
+});
+
 const closeDialog = () => {
   emit('update:visible', false);
 };
@@ -100,19 +98,49 @@ const resetForm = () => {
   taskDescription.value = '';
 };
 
+
+
 const saveTask = () => {
-  if (taskName.value.trim() === '') return;
+
+  if (!taskName.value.trim() || !taskTime.value) {
+    console.warn("Task name or time is missing.");
+    return;
+  }
+
+  // Convert `taskTime` to a string format that the API expects
+  const formattedTime = taskTime.value
+    ? taskTime.value.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true // Change to `false` for 24-hour format
+      })
+    : null;
 
   const newTask = {
     name: taskName.value,
-    time: taskTime.value,
+    date: formattedTime, // Send the formatted time as a string
+	time: taskTime.value,
     description: taskDescription.value,
   };
 
   taskStore.addTask(props.day.date, newTask);
 
+  axios.post("http://localhost:8080/tasks/create", newTask, {
+    headers: {
+    'Content-Type': 'application/json'
+  },
+  withCredentials: true  // Include credentials (cookies) with the request
+})
+  .then(response => {
+    console.log('Task updated:', response.data);
+  })
+  .catch(error => {
+    console.error('Error updating task:', error);
+  });
+
   closeDialog();
 };
+
 </script>
 
 <style scoped>

@@ -169,10 +169,9 @@ const selectDay = (day) => {
   }
 };
 
-// Open the NewTask dialog from TaskDropdown
 const openNewTaskDialog = () => {
-  taskDropdownVisible.value = false; // Close TaskDropdown
-  taskDialogVisible.value = true; // Open NewTask dialog
+  taskDropdownVisible.value = false;
+  taskDialogVisible.value = true;
 };
 
 // Navigate to the previous month
@@ -187,16 +186,14 @@ const nextMonth = () => {
   populateDays();
 };
 
-// Watch for changes in task data to repopulate the calendar
 watch(
-  () => taskStore.tasksByDate, // Watch for changes in the Pinia store
+  () => taskStore.tasksByDate,
   () => {
     populateDays();
   },
   { deep: true }
 );
 
-// Initialize calendar with the current month
 populateDays();
 </script>
 
