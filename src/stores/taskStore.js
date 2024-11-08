@@ -21,15 +21,24 @@ export const useTaskStore = defineStore('taskStore', {
           withCredentials: true
         })
 
-        this.tasksByDate = {}
+        console.log(response.data)
 
         response.data.forEach((task) => {
-          const dateKey = new Date(task.date).toDateString()
-          if (!this.tasksByDate[dateKey]) {
-            this.tasksByDate[dateKey] = []
+          const dateStr = task.time.replace(' ', 'T')
+          const parsedDate = new Date(dateStr)
+
+          if (isNaN(parsedDate.getTime())) {
+            console.error('Invalid date detected:', task.date)
+          } else {
+            const dateKey = parsedDate.toDateString()
+            if (!this.tasksByDate[dateKey]) {
+              this.tasksByDate[dateKey] = []
+            }
+            this.tasksByDate[dateKey].push(task)
           }
-          this.tasksByDate[dateKey].push(task)
         })
+        // Print the updated task store after processing the API response
+        console.log('Updated tasksByDate:', this.tasksByDate)
       } catch (error) {
         console.error('Error fetching tasks:', error)
       }

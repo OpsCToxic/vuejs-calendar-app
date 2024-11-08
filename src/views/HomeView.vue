@@ -77,7 +77,7 @@ import { useTaskStore } from '../stores/taskStore';
 import Button from 'primevue/button';
 import TaskDropdown from '@/components/TaskDropdown.vue';
 import NewTask from '@/components/NewTask.vue';
-
+import { onMounted } from 'vue';
 const taskStore = useTaskStore(); // Use Pinia store
 
 // State Variables
@@ -89,6 +89,7 @@ const taskDropdownVisible = ref(false); // Control visibility of the TaskDropdow
 
 // Days of the week for the header
 const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 
 // Populate the days array with days of the current month and adjacent days
 const populateDays = () => {
@@ -194,6 +195,9 @@ watch(
   { deep: true }
 );
 
+onMounted(() => {
+	populateDays();
+})
 populateDays();
 </script>
 

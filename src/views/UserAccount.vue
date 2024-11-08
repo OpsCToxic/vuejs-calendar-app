@@ -58,6 +58,7 @@ import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import router from '@/router';
 import { useTaskStore } from '../stores/taskStore';
+import populateDays from "../views/HomeView.vue";
 
 const taskStore = useTaskStore();
 const showSignUp = ref(false);
@@ -93,15 +94,12 @@ const signIn = async () => {
       withCredentials: true // Include credentials to keep session
     });
 
-    console.log(response);
-
     // Check if status is 200 for a successful login
     if (response.status === 200) {
       alert('Sign-in successful');
 
       // Fetch user tasks and store them
       await taskStore.fetchTasks();
-
       // Navigate to the /home route
       router.push('/home');
     } else {
