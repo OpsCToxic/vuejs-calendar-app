@@ -13,12 +13,4 @@ const router = createRouter({
   routes
 })
 
-// Redirection on refresh
-window.addEventListener('load', () => {
-  if (window.location.pathname !== '/signin') {
-    // Redirect to /account on page load/refresh
-    window.location.href = '/signin'
-  }
-})
-
 export default router
